@@ -23,14 +23,16 @@ function wpb_add_custom_meta_boxes() {
 
 add_action ( 'add_meta_boxes', 'wpb_add_custom_meta_boxes' );
 
-function league_table_callback() {
+function league_table_callback( $post ) {
+	wp_nonce_field( basename( __FILE__ ), 'league_table_nonce' );
+	$league_table_stored_meta = get_post_meta( $post -> ID );
 	?>
 
 			<div class="meta-row">
 				<div class="meta-labels">
 					<table>
 						<tr>
-							<td><input id="row-1-team" name="row-1-team" placeholder="Team Name" type="text" maxlength="20" size="25"></td>
+							<td><input id="row-1-team" name="row-1-team" placeholder="Team Name" type="text" maxlength="20" size="25" value="<?php if ( ! empty ( $league_table_stored_meta['row-1-team'] ) ) echo esc_attr( $league_table_stored_meta['row-1-team'][0]); ?>"></td>
 			                <td><input id="row-1-played" name="row-1-played" placeholder="P" type="text" size="2"></td>
 			                <td><input id="row-1-won" name="row-1-won" placeholder="W" type="text" size="2"></td>
 			                <td><input id="row-1-lost" name="row-1-lost" placeholder="L" type="text" size="2"></td>
@@ -134,4 +136,20 @@ function league_table_callback() {
 
 	<?php
 }
+
+function league_table_meta_save( $post_id ) {
+	$is_autosave = wp_is_post_autosave( $post_id );
+	$is_revision = wp_is_post_revision( $post_id );
+	$is_valid_nonce = ( isset( $_POST[ 'league_table_nonce' ] ) && wp_verify_nonce( $_POST[ 'league_table_nonce' ],basename(__FILE__) ) ) ? 'true' : 'false';
+
+	if ( $is_autosave || $is_revision || !$is_valid_nonce ) {
+		return;
+	}
+
+	if ( isset( $_POST['row-1-team'] ) ) {
+		update_post_meta( $post_id, 'row-1-team', sanitize_text_field($_POST['row-1-team'] ) );
+	}
+}
+
+add_action( 'save_post', 'league_table_meta_save' );
 
